@@ -8,61 +8,59 @@ pipeline {
                 archiveArtifacts artifacts: 'src/index.html'
             }
         }
-        stage('DeployToStage') {
+            stage('DeployToStage') {
             when {
                 branch 'master'
             }
-            steps {
-                withCredentials([string(credentialsId: 'cloud_user_pw', variable: 'USERPASS')]) {
-                    sshPublisher(
-                        failOnError: true,
-                        publishers: [
-                            sshPublisherDesc(
-                                configName: 'staging',
-                                sshCredentials: [
-                                    username: 'cloud_user',
-                                    encryptedPassphrase: "$USERPASS"
-                                ], 
-                                transfers: [
-                                    sshTransfer(
-                                        sourceFiles: 'src/**',
-                                        removePrefix: 'src/'
-                                    )
-                                ]
-                            )
-                        ]
-                    )
-                }
-            }
-        }
-        stage('DeployToProd') {
+                   steps {
+                    withCredentials([sshUserPrivateKey(credentialsId: 'ssh&username', keyFileVariable:    'stage-server', passphraseVariable: '', usernameVariable: 'ec2-user')]) {
+                  // some block
+              sshPublisher(
+                 publishers: 
+                          [sshPublisherDesc(
+                               configName: 'stage-server', transfers: 
+                         [sshTransfer(
+                              cleanRemote: false, excludes: '', execCommand: '', execTimeout: 120000,     flatten: false, makeEmptyDirs: false, noDefaultExcludes: false, patternSeparator: '[, ]+', remoteDirectory: '/var/www/html', 
+                                  remoteDirectorySDF: false, 
+                                     removePrefix: '',
+                                           sourceFiles: '"/"')], 
+                                               usePromotionTimestamp: false, 
+                                                   useWorkspaceInPromotion: false, 
+                                                               verbose: false)])
+
+                 }
+               stage('DeployToProd') {
             when {
                 branch 'master'
             }
             steps {
                 input 'Does the staging environment look OK?'
                 milestone(1)
-                withCredentials([string(credentialsId: 'cloud_user_pw', variable: 'USERPASS')]) {
-                    sshPublisher(
-                        failOnError: true,
-                        publishers: [
-                            sshPublisherDesc(
-                                configName: 'production',
-                                sshCredentials: [
-                                    username: 'cloud_user',
-                                    encryptedPassphrase: "$USERPASS"
-                                ], 
-                                transfers: [
-                                    sshTransfer(
-                                        sourceFiles: 'src/**',
-                                        removePrefix: 'src/'
-                                    )
-                                ]
-                            )
-                        ]
-                    )
-                }
-            }
-        }
-    }
-}
+               withCredentials([
+                   sshUserPrivateKey(
+                      credentialsId: 'ssh&username', keyFileVariable: 'deployment', 
+                      passphraseVariable: '', usernameVariable: 'ec2-user')]) {
+                      // some block
+                      }
+             sshPublisher(
+                publishers: [
+                   sshPublisherDesc(
+                      configName: 'deployment',
+                      transfers: [
+                            sshTransfer(
+                              cleanRemote: 
+                                 false, excludes: '', 
+                                          execCommand: '', 
+                                           execTimeout: 120000, 
+                                            flatten: false, 
+                                             makeEmptyDirs: false, 
+                                              noDefaultExcludes: false, 
+                                               patternSeparator: '[, ]+', 
+                                                remoteDirectory: '/var/www/html', 
+                                                 remoteDirectorySDF: false, 
+                                                  removePrefix: '', 
+                                            sourceFiles: '"/"')], 
+                                                  usePromotionTimestamp: false, 
+                                                     useWorkspaceInPromotion: false, verbose: false)])
+
+           }
